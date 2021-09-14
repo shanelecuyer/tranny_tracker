@@ -3,7 +3,6 @@ import sys
 import subprocess
 from urllib.request import urlopen
 
-
 ip = '192.168.1.123'
 port = '1234'
 user = 'username'
@@ -35,7 +34,6 @@ def search_torrents(arg,torrents):
         else:
                 print('')
                 print(f'Error: \"{arg}\" not found in torrent list')
-
 
 def get_trackers(torrent):
         print(f'        Getting list of trackers')
