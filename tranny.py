@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import subprocess
 from urllib.request import urlopen
 
@@ -23,6 +24,19 @@ def get_torrents():
         print(f'Getting list of torrents')
         return run_cmd(f'{tsm} -l')[1:-1]
 
+def search_torrents(arg,torrents):
+        for count, torrent in enumerate(torrents, start=1):
+                print(f'Searching for \"{arg}\" [{count}/{len(torrents)}]', end='\r')
+                if arg in torrent[8]:
+                        print('')
+                        print(f'Found: {torrent[8]}')
+                        return(torrent[0])
+                        break
+        else:
+                print('')
+                print(f'Error: \"{arg}\" not found in torrent list')
+
+
 def get_trackers(torrent):
         print(f'        Getting list of trackers')
         return run_cmd(f'{tsm} -t {torrent} -it')
@@ -37,33 +51,54 @@ def get_new_trackers():
         return result
 
 def clear_trackers(torrent):
-        print(f'        Clearing trackers...')
         trackers = []
+        filtered_trackers = []
         trackers = get_trackers(torrent)
         for index, tracker in enumerate(trackers):
-                if not len(tracker):
+                tracker = tracker[:-1]
+                if not len(tracker) or tracker[0] != "Tracker":
                         del trackers[index]
                         continue
-                if tracker[0] != "Tracker":
-                        del trackers[index]
+                else:
+                        filtered_trackers.append(tracker[1][:-1])
                         continue
-                #print(f'Deleting tracker {tracker[1]} from torrent #{torrent}')
-                run_cmd(f'{tsm} -t {torrent} -tr {tracker[1]}[:-1]')
+        for count, tracker in enumerate(filtered_trackers, start=1):
+                print(f'Deleting tracker {count} of {len(filtered_trackers)}', end='\r')
+                run_cmd(f'{tsm} -t {torrent} -tr {tracker}')
 
 def add_trackers(torrent,new_trackers):
-        print(f'        Adding trackers...')
-        for tracker in new_trackers:
+        for count, tracker in enumerate(new_trackers, start=1):
+                print(f'Adding tracker {count} of {len(new_trackers)}', end='\r')
                 run_cmd(f'{tsm} -t {torrent} -td {tracker}')
 
 def main():
         print('')
-        torrents = get_torrents()
-        new_trackers = get_new_trackers()
-        for torrent in torrents:
-                print('')
-                print(f'Torrent #{torrent[0]}:')
-                clear_trackers(torrent[0])
-                add_trackers(torrent[0],new_trackers)
+        if len(sys.argv) > 2:
+                print('Error: Too many arguments')
+        elif len(sys.argv) == 2:
+                arg = sys.argv[1]
+                torrents = get_torrents()
+                search_result = search_torrents(arg, torrents)
+                if search_result:
+                        print('')
+                        new_trackers = get_new_trackers()
+                        print('')
+                        clear_trackers(search_result)
+                        print('')
+                        add_trackers(search_result,new_trackers)
+                        print('')
+                        print('')
+                        print('Done')
+        else:
+                torrents = get_torrents()
+                new_trackers = get_new_trackers()
+                for count, torrent in enumerate(torrents, start=1):
+                        print('')
+                        print(f'Torrent #{torrent[0]} ({count}/{len(torrents)}):')
+                        clear_trackers(torrent[0])
+                        print('')
+                        add_trackers(torrent[0],new_trackers)
+                        print('Done')
 
 if __name__ == "__main__":
         main()
